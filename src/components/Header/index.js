@@ -7,7 +7,7 @@ import { Container, Cart } from "./styles";
 
 import logo from "../../assets/logo.svg";
 
-const Header = ({ cart, cartLength }) => {
+const Header = ({ cart, cartLength, amount }) => {
   console.log(cart);
 
   return (
@@ -29,6 +29,7 @@ const Header = ({ cart, cartLength }) => {
 };
 
 export default connect((state) => ({
+  amount: state.cart.amount,
   cart: state.cart,
   cartLength: state.cart.length,
 }))(Header);
