@@ -8,8 +8,6 @@ import { Container, Cart } from "./styles";
 import logo from "../../assets/logo.svg";
 
 const Header = ({ cart, cartLength, amount }) => {
-  console.log(cart);
-
   return (
     <div>
       <Container>

@@ -1,22 +1,61 @@
-import { call, put, all, takeLatest } from "redux-saga/effects";
+import { call, select, put, all, takeLatest } from "redux-saga/effects";
+import { toast } from "react-toastify";
 
 import api from "../../../services/api";
+import history from "../../../services/history";
+import { formatPrice } from "../../../util/format";
 
-import { addToCartSuccess } from "./actions";
+import { addToCartSuccess, updateAmountSuccess } from "./actions";
 
 function* addToCart({ id }) {
-  const response = yield call(api.get, `/products/${id}`); //mesma coisa que api.get(`/products/${id}`)
-  yield put(addToCartSuccess(response.data));
+  const productExists = yield select((state) => {
+    return state.cart.find((p) => p.id === id);
+  });
+
+  const stock = yield call(api.get, `stock/${id}`);
+
+  const stockAmount = stock.data.amount;
+  const currentAmount = productExists ? productExists.amount : 0;
+
+  const amount = currentAmount + 1;
+
+  if (amount > stockAmount) {
+    toast.error("Quantidade solicitada fora de estoque");
+    return;
+  }
+
+  if (productExists) {
+    yield put(updateAmountSuccess(id, amount));
+  } else {
+    const response = yield call(api.get, `/products/${id}`);
+
+    const data = {
+      ...response.data,
+      amount: 1,
+      priceFormatted: formatPrice(response.data.price),
+    };
+
+    yield put(addToCartSuccess(data));
+
+    history.push("/cart");
+  }
 }
 
-export default all([takeLatest("@cart/ADD_REQUEST", addToCart)]);
+function* updateAmount({ id, amount }) {
+  if (amount <= 0) return;
 
-//* é o async e yield é o await
+  const stock = yield call(api.get, `stock/${id}`);
+  const stockAmount = stock.data.amount;
 
-//call chama métodos assíncronos que retornam promises
+  if (amount > stockAmount) {
+    toast.error("Quantidade solicitada fora de estoque");
+    return;
+  }
 
-//put dispara uma action do redux
+  yield put(updateAmountSuccess(id, amount));
+}
 
-//all são listeners que ouvem quando as actions são disparadas
-
-//takeLatest é um controle do saga que pega apenas a última vez que o usuário fez uma requisição na api
+export default all([
+  takeLatest("@cart/ADD_REQUEST", addToCart),
+  takeLatest("@cart/UPDATE_AMOUNT_REQUEST", updateAmount),
+]);
